@@ -2,6 +2,7 @@
   "name": "os-concepts-demo",
   "version": "1.0.0",
   "description": "Educational demonstration of IPC, race conditions, and their solutions",
+  "main": "src/cli/index.ts",
   "module": "src/cli/index.ts",
   "type": "module",
   "private": true,
