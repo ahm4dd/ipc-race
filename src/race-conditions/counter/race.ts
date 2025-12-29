@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { spawn } from "bun";
 import { header, log, logRace, section } from "../../utils/logger.ts";
 import type { DemoResult } from "../../utils/types.ts";
+import chalk from "chalk";
 
 /**
  * Demonstrates the classic counter race condition
@@ -25,18 +26,22 @@ export async function demonstrateCounterRace(): Promise<DemoResult> {
     // Initialize counter
     section("Initializing Shared Counter");
     initializeCounter();
-    log("Counter initialized to 0", "success");
+
+    // VISUAL PROOF: Show initial file content
+    log("📄 File contents BEFORE:", "info");
+    console.log(chalk.gray(readFileSync(COUNTER_FILE, "utf8")));
 
     // Spawn worker processes
     section("Spawning Worker Processes");
     const numWorkers = 5;
     const incrementsPerWorker = 20;
+    const expected = numWorkers * incrementsPerWorker;
 
     log(
       `Spawning ${numWorkers} workers, each will increment ${incrementsPerWorker} times`,
       "info"
     );
-    log(`Expected final value: ${numWorkers * incrementsPerWorker}`, "info");
+    log(`Expected increments: ${expected}`, "info");
 
     const workers: Promise<number | null>[] = [];
 
@@ -60,19 +65,40 @@ export async function demonstrateCounterRace(): Promise<DemoResult> {
 
     // Check final value
     section("Race Condition Results");
+
+    // VISUAL PROOF: Show final file content
+    log("📄 File contents AFTER:", "info");
+    console.log(chalk.gray(readFileSync(COUNTER_FILE, "utf8")));
+
     const finalState = readCounter();
-    const expected = numWorkers * incrementsPerWorker;
+    const actual = finalState.value;
+    const lost = expected - actual;
 
-    log(`Expected value: ${expected}`, "info");
-    log(`Actual value: ${finalState.value}`, "info");
-    log(`Lost updates: ${expected - finalState.value}`, "error");
+    // VERIFICATION TABLE
+    console.log("\n" + chalk.cyan("╔════════════════════════════════════╗"));
+    console.log(chalk.cyan("║  VERIFICATION SUMMARY              ║"));
+    console.log(chalk.cyan("╠════════════════════════════════════╣"));
+    console.log(
+      chalk.cyan("║") +
+        ` Expected:      ${String(expected).padEnd(20)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Actual:        ${String(actual).padEnd(20)} ` +
+        chalk.cyan("║")
+    );
+    const lostStr = `${lost} ${lost > 0 ? "⚠️" : ""}`;
+    console.log(
+      chalk.cyan("║") +
+        ` Lost Updates:  ${lostStr.padEnd(20)} ` +
+        chalk.cyan("║")
+    );
+    console.log(chalk.cyan("╚════════════════════════════════════╝") + "\n");
 
-    if (finalState.value < expected) {
-      logRace(`RACE CONDITION! Lost ${expected - finalState.value} increments`);
-      log(
-        "This happened because of concurrent read-modify-write operations",
-        "warn"
-      );
+    if (actual < expected) {
+      logRace(`RACE CONDITION DETECTED! Lost ${lost} increments`);
+      log("The file proves that increments were overwritten!", "warn");
     } else {
       log("No race detected this time (races are non-deterministic)", "warn");
     }
@@ -81,8 +107,8 @@ export async function demonstrateCounterRace(): Promise<DemoResult> {
 
     return {
       success: true,
-      message: `Counter race condition demonstrated: ${finalState.value}/${expected}`,
-      output: `Lost ${expected - finalState.value} updates`,
+      message: `Counter race demonstrated: ${actual}/${expected}`,
+      output: `Lost ${lost} updates`,
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -98,7 +124,7 @@ export async function demonstrateCounterRace(): Promise<DemoResult> {
 
 function initializeCounter(): void {
   const initialState: CounterState = { value: 0 };
-  writeFileSync(COUNTER_FILE, JSON.stringify(initialState), "utf8");
+  writeFileSync(COUNTER_FILE, JSON.stringify(initialState, null, 2), "utf8");
 }
 
 function readCounter(): CounterState {

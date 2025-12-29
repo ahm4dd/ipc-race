@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { spawn } from "bun";
 import { header, log, logRace, section } from "../../utils/logger.ts";
 import type { DemoResult, Account } from "../../utils/types.ts";
+import chalk from "chalk";
 
 /**
  * Demonstrates race condition in bank account transfers
@@ -24,7 +25,10 @@ export async function demonstrateBankRace(): Promise<DemoResult> {
     // Initialize accounts
     section("Initializing Bank Accounts");
     initializeAccounts();
-    log(`Account 1 initialized with balance: $${INITIAL_BALANCE}`, "success");
+
+    // VISUAL PROOF: Show initial file content
+    log("📄 File contents BEFORE:", "info");
+    console.log(chalk.gray(readFileSync(ACCOUNTS_FILE, "utf8")));
 
     // Spawn concurrent withdrawal processes
     section("Spawning Concurrent Withdrawal Processes");
@@ -35,12 +39,8 @@ export async function demonstrateBankRace(): Promise<DemoResult> {
       `${numWithdrawers} processes will each try to withdraw $${withdrawAmount}`,
       "info"
     );
-    log(`Account balance: $${INITIAL_BALANCE}`, "info");
-    log(
-      `Total withdrawal attempt: $${numWithdrawers * withdrawAmount}`,
-      "info"
-    );
-    log(`Should reject some withdrawals to prevent negative balance`, "warn");
+    log(`Initial Balance: $${INITIAL_BALANCE}`, "info");
+    log(`Total Attempt:   $${numWithdrawers * withdrawAmount}`, "info");
 
     const workers: Promise<number | null>[] = [];
 
@@ -64,6 +64,11 @@ export async function demonstrateBankRace(): Promise<DemoResult> {
 
     // Check final state
     section("Race Condition Results");
+
+    // VISUAL PROOF: Show final file content
+    log("📄 File contents AFTER:", "info");
+    console.log(chalk.gray(readFileSync(ACCOUNTS_FILE, "utf8")));
+
     const finalState = readAccounts();
     const account = finalState.accounts.find((a) => a.id === 1);
 
@@ -71,26 +76,55 @@ export async function demonstrateBankRace(): Promise<DemoResult> {
       throw new Error("Account not found");
     }
 
-    log(`Final balance: $${account.balance}`, "info");
-    log(`Expected minimum: $0 (cannot go negative)`, "info");
+    const actual = account.balance;
+    const totalWithdrawn = INITIAL_BALANCE - actual;
+    const successfulWithdrawals = totalWithdrawn / withdrawAmount;
+
+    // VERIFICATION TABLE
+    console.log("\n" + chalk.cyan("╔════════════════════════════════════╗"));
+    console.log(chalk.cyan("║  VERIFICATION SUMMARY              ║"));
+    console.log(chalk.cyan("╠════════════════════════════════════╣"));
+    console.log(
+      chalk.cyan("║") +
+        ` Initial:       $${String(INITIAL_BALANCE).padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Final:         $${String(actual).padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Withdrawn:     $${String(totalWithdrawn).padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Min Count:     0 ($0)               ` +
+        chalk.cyan("║")
+    );
+    console.log(chalk.cyan("╚════════════════════════════════════╝") + "\n");
 
     if (account.balance < 0) {
       logRace(
         `RACE CONDITION! Account has negative balance: $${account.balance}`
       );
-      log("This should never happen in a real bank!", "error");
-    } else if (account.balance > 0 && account.balance < INITIAL_BALANCE) {
-      log(`Some withdrawals succeeded, balance is $${account.balance}`, "info");
-      const withdrawn = INITIAL_BALANCE - account.balance;
-      log(`Total withdrawn: $${withdrawn}`, "info");
-
-      if (withdrawn > INITIAL_BALANCE) {
-        logRace(
-          `Race allowed over-withdrawal! Withdrew $${withdrawn} from $${INITIAL_BALANCE}`
-        );
-      }
-    } else if (account.balance === 0) {
-      log("Account was completely drained", "info");
+      log(
+        "The file proves we allowed withdrawing money we didn't have!",
+        "error"
+      );
+    } else if (totalWithdrawn > INITIAL_BALANCE) {
+      logRace(
+        `RACE CONDITION! Withdrew $${totalWithdrawn} from $${INITIAL_BALANCE}`
+      );
+    } else if (successfulWithdrawals % 1 !== 0) {
+      logRace(`RACE CONDITION! Inconsistent withdrawal amount detected.`);
+    } else {
+      log(
+        "No negative balance this time (races are non-deterministic)",
+        "warn"
+      );
     }
 
     cleanup();

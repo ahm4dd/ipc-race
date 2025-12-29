@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import { spawn } from "bun";
 import { header, log, logRace, section } from "../utils/logger.ts";
 import type { DemoResult } from "../utils/types.ts";
+import chalk from "chalk";
 
 /**
  * Demonstrates race conditions in SQLite WITHOUT proper transactions
@@ -25,20 +26,20 @@ export async function demonstrateSQLiteRace(): Promise<DemoResult> {
     const db = initializeDatabase();
     log("Database created with initial data", "success");
 
-    // Show initial state
+    // VISUAL PROOF: Show initial DB rows
+    log("📊 Database Rows BEFORE:", "info");
     const initialAccounts = db.query("SELECT * FROM accounts").all();
-    log("Initial accounts:", "info");
-    for (const account of initialAccounts as any[]) {
-      log(`  ${account.name}: $${account.balance}`, "info");
-    }
+    console.table(initialAccounts);
+
     db.close();
 
     // Spawn concurrent transfer processes
     section("Spawning Concurrent Transfer Processes");
     const numProcesses = 5;
+    const transferAmount = 100;
 
     log(
-      `${numProcesses} processes will transfer $100 from Alice to Bob`,
+      `${numProcesses} processes will transfer $${transferAmount} from Alice to Bob`,
       "info"
     );
     log("Without transactions, this will cause race conditions!", "warn");
@@ -53,7 +54,7 @@ export async function demonstrateSQLiteRace(): Promise<DemoResult> {
           "src/sqlite-demo/transfer-worker.ts",
           "Alice",
           "Bob",
-          "100",
+          String(transferAmount),
         ],
         stderr: "inherit",
         stdout: "inherit",
@@ -69,36 +70,66 @@ export async function demonstrateSQLiteRace(): Promise<DemoResult> {
     const finalDb = new Database(DB_PATH);
     const finalAccounts = finalDb.query("SELECT * FROM accounts").all();
 
-    log("Final accounts:", "info");
+    // VISUAL PROOF: Show final DB rows
+    log("📊 Database Rows AFTER:", "info");
+    console.table(finalAccounts);
+
     let aliceBalance = 0;
     let bobBalance = 0;
 
     for (const account of finalAccounts as any[]) {
-      log(`  ${account.name}: $${account.balance}`, "info");
       if (account.name === "Alice") aliceBalance = account.balance;
       if (account.name === "Bob") bobBalance = account.balance;
     }
 
     // Analysis
-    const expectedAlice = 1000 - numProcesses * 100;
-    const expectedBob = 1000 + numProcesses * 100;
+    const expectedAlice = 1000 - numProcesses * transferAmount;
+    const expectedBob = 1000 + numProcesses * transferAmount;
+    const totalMoney = aliceBalance + bobBalance;
+    const expectedTotal = 1000 + 1000;
+    const lostMoney = expectedTotal - totalMoney;
 
-    log("\nExpected results:", "info");
-    log(`  Alice: $${expectedAlice}`, "info");
-    log(`  Bob: $${expectedBob}`, "info");
+    // VERIFICATION TABLE
+    console.log("\n" + chalk.cyan("╔════════════════════════════════════╗"));
+    console.log(chalk.cyan("║  VERIFICATION SUMMARY              ║"));
+    console.log(chalk.cyan("╠════════════════════════════════════╣"));
+    console.log(
+      chalk.cyan("║") +
+        ` Expected Alice: $${String(expectedAlice).padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Actual Alice:   $${String(aliceBalance).padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Expected Bob:   $${String(expectedBob).padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Actual Bob:     $${String(bobBalance).padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    console.log(chalk.cyan("╠════════════════════════════════════╣"));
+    console.log(
+      chalk.cyan("║") +
+        ` Total Money:    $${String(totalMoney).padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    const lostStr = `$${lostMoney} ${lostMoney !== 0 ? "⚠️" : ""}`;
+    console.log(
+      chalk.cyan("║") +
+        ` MONEY LOST:     ${lostStr.padEnd(19)} ` +
+        chalk.cyan("║")
+    );
+    console.log(chalk.cyan("╚════════════════════════════════════╝") + "\n");
 
-    if (aliceBalance !== expectedAlice || bobBalance !== expectedBob) {
+    if (lostMoney !== 0) {
       logRace("RACE CONDITION DETECTED!");
-      log(`Alice difference: $${aliceBalance - expectedAlice}`, "error");
-      log(`Bob difference: $${bobBalance - expectedBob}`, "error");
-
-      const totalMoney = aliceBalance + bobBalance;
-      const expectedTotal = 1000 + 1000; // Initial balances
-      if (totalMoney !== expectedTotal) {
-        logRace(
-          `Money disappeared! Total: $${totalMoney}, Expected: $${expectedTotal}`
-        );
-      }
+      log("Money simply disappeared from the system!", "error");
     } else {
       log("No race detected this time (races are non-deterministic)", "warn");
     }
@@ -108,9 +139,7 @@ export async function demonstrateSQLiteRace(): Promise<DemoResult> {
     return {
       success: true,
       message: `SQLite race demo: Alice=$${aliceBalance}, Bob=$${bobBalance}`,
-      output: `Race detected: ${
-        aliceBalance !== expectedAlice || bobBalance !== expectedBob
-      }`,
+      output: `Lost $${lostMoney}`,
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -124,7 +153,6 @@ export async function demonstrateSQLiteRace(): Promise<DemoResult> {
 }
 
 function initializeDatabase(): Database {
-  // Remove old database
   try {
     const fs = require("fs");
     if (fs.existsSync(DB_PATH)) {
@@ -134,10 +162,8 @@ function initializeDatabase(): Database {
     // Ignore
   }
 
-  // Create new database
   const db = new Database(DB_PATH);
 
-  // Execute schema
   const schema = readFileSync("src/sqlite-demo/schema.sql", "utf8");
   const statements = schema.split(";").filter((s) => s.trim());
 
@@ -150,7 +176,6 @@ function initializeDatabase(): Database {
   return db;
 }
 
-// Run if executed directly
 if (import.meta.main) {
   demonstrateSQLiteRace()
     .then(() => process.exit(0))

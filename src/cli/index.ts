@@ -3,16 +3,11 @@ import chalk from "chalk";
 import { header, section, log } from "../utils/logger.ts";
 
 // Import all demo functions
-import { demonstrateChildProcess } from "../ipc/child-process.ts";
-import { demonstrateSharedMemory } from "../ipc/shared-memory.ts";
-import { demonstrateMessagePassing } from "../ipc/message-passing.ts";
 import { demonstrateProducerConsumer } from "../ipc/producer-consumer.ts";
 import { demonstrateCounterRace } from "../race-conditions/counter/race.ts";
 import { demonstrateCounterSolution } from "../race-conditions/counter/solution.ts";
 import { demonstrateBankRace } from "../race-conditions/bank-account/race.ts";
 import { demonstrateBankSolution } from "../race-conditions/bank-account/solution.ts";
-import { demonstrateInventoryRace } from "../race-conditions/inventory/race.ts";
-import { demonstrateInventorySolution } from "../race-conditions/inventory/solution.ts";
 import { demonstrateSQLiteRace } from "../sqlite-demo/race-demo.ts";
 import { demonstrateSQLiteTransactions } from "../sqlite-demo/transaction-demo.ts";
 
@@ -31,24 +26,6 @@ interface DemoItem {
 
 const demos: DemoItem[] = [
   // IPC Demos
-  {
-    name: "Child Process Communication",
-    description: "Parent-child messaging via stdin/stdout",
-    run: demonstrateChildProcess,
-    category: "ipc",
-  },
-  {
-    name: "Shared Memory Simulation",
-    description: "File-based shared memory with race conditions",
-    run: demonstrateSharedMemory,
-    category: "ipc",
-  },
-  {
-    name: "Message Passing",
-    description: "Queue-based async communication",
-    run: demonstrateMessagePassing,
-    category: "ipc",
-  },
   {
     name: "Producer-Consumer",
     description: "Classic pattern with buffer management",
@@ -79,18 +56,6 @@ const demos: DemoItem[] = [
     name: "Bank Transfer Solution (Mutex)",
     description: "Mutex ensures atomic check-and-withdraw",
     run: demonstrateBankSolution,
-    category: "solution",
-  },
-  {
-    name: "Inventory Race",
-    description: "Overselling from concurrent purchases",
-    run: demonstrateInventoryRace,
-    category: "race",
-  },
-  {
-    name: "Inventory Solution (Mutex)",
-    description: "Mutex prevents overselling",
-    run: demonstrateInventorySolution,
     category: "solution",
   },
 

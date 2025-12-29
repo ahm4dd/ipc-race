@@ -1,7 +1,8 @@
 import { existsSync, writeFileSync, readFileSync, unlinkSync } from "fs";
 import { spawn } from "bun";
-import { header, log, section } from "../utils/logger.ts";
+import { header, log, section, logRace } from "../utils/logger.ts";
 import type { DemoResult } from "../utils/types.ts";
+import chalk from "chalk";
 
 /**
  * Classic Producer-Consumer problem demonstration
@@ -32,6 +33,10 @@ export async function demonstrateProducerConsumer(): Promise<DemoResult> {
     section("Initializing Shared Buffer");
     initializeBuffer();
     log(`Shared buffer initialized (max size: ${MAX_BUFFER_SIZE})`, "success");
+
+    // VISUAL PROOF: Show detailed initial state
+    log("📄 Buffer State BEFORE:", "info");
+    console.log(chalk.gray(readFileSync(BUFFER_FILE, "utf8")));
 
     // Spawn producers and consumers
     section("Starting Producers and Consumers");
@@ -68,7 +73,7 @@ export async function demonstrateProducerConsumer(): Promise<DemoResult> {
     log("All producers finished", "success");
 
     // Give consumers time to drain the buffer
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Terminate consumers (they run continuously)
     consumer1.kill();
@@ -76,19 +81,49 @@ export async function demonstrateProducerConsumer(): Promise<DemoResult> {
 
     // Check final state
     section("Final Buffer State");
+
+    // VISUAL PROOF: Show final buffer file
+    log("📄 Buffer State AFTER:", "info");
+    console.log(chalk.gray(readFileSync(BUFFER_FILE, "utf8")));
+
     const finalState = readBuffer();
-    log(`Total produced: ${finalState.producedCount}`, "info");
-    log(`Total consumed: ${finalState.consumedCount}`, "info");
-    log(`Items remaining in buffer: ${finalState.items.length}`, "info");
+    const totalProduced = 9; // 5 + 4 items
+    const processed = finalState.consumedCount;
+    const remaining = finalState.items.length;
+
+    // VERIFICATION TABLE
+    console.log("\n" + chalk.cyan("╔════════════════════════════════════╗"));
+    console.log(chalk.cyan("║  VERIFICATION SUMMARY              ║"));
+    console.log(chalk.cyan("╠════════════════════════════════════╣"));
+    console.log(
+      chalk.cyan("║") +
+        ` Expected Produced: ${String(totalProduced).padEnd(17)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Actual Produced:   ${String(finalState.producedCount).padEnd(17)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Items Consumed:    ${String(processed).padEnd(17)} ` +
+        chalk.cyan("║")
+    );
+    console.log(
+      chalk.cyan("║") +
+        ` Items Remaining:   ${String(remaining).padEnd(17)} ` +
+        chalk.cyan("║")
+    );
+    console.log(chalk.cyan("╚════════════════════════════════════╝") + "\n");
 
     if (finalState.producedCount === finalState.consumedCount) {
-      log("All items were successfully processed!", "success");
+      log("All produced items were consumed! System is balanced.", "success");
+    } else if (remaining + processed === finalState.producedCount) {
+      log("All items accounted for (consumed + remaining).", "success");
     } else {
-      log(
-        `${
-          finalState.producedCount - finalState.consumedCount
-        } items still in buffer or lost`,
-        "warn"
+      logRace(
+        `Mismatch! Produced ${finalState.producedCount} != Consumed ${processed} + Remaining ${remaining}`
       );
     }
 
