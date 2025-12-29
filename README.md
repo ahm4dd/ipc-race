@@ -3,12 +3,12 @@
 An educational TypeScript project demonstrating fundamental operating system concepts including **Inter-Process Communication (IPC)**, **race conditions**, and **synchronization solutions**.
 
 <p align="center">
-  <strong>🎯 Purpose:</strong> Help developers understand concurrency challenges and solutions through hands-on demonstrations
+  <strong>Purpose:</strong> Help developers understand concurrency challenges and solutions through hands-on demonstrations
 </p>
 
 ---
 
-## 📚 What You'll Learn
+##  What You'll Learn
 
 - **IPC Mechanisms**: How processes communicate and share data
 - **Race Conditions**: Why and how concurrent access causes bugs
@@ -17,7 +17,7 @@ An educational TypeScript project demonstrating fundamental operating system con
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -66,7 +66,7 @@ bun run src/sqlite-demo/transaction-demo.ts
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 os-concepts-demo/
@@ -108,7 +108,7 @@ os-concepts-demo/
 
 ---
 
-## 🎓 Demonstrations
+## Demonstrations
 
 ### 1. IPC (Inter-Process Communication)
 
@@ -260,7 +260,7 @@ os-concepts-demo/
 
 ---
 
-## 📖 Learning Resources
+## Learning Resources
 
 ### Essential Concepts Guide
 
@@ -312,7 +312,7 @@ bun test
 
 ---
 
-## 🎯 Educational Goals
+## Educational Goals
 
 This project teaches:
 
@@ -324,7 +324,7 @@ This project teaches:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 This is an educational project. Contributions that:
 
@@ -337,13 +337,13 @@ are welcome!
 
 ---
 
-## 📝 License
+## License
 
 Educational project for learning OS concepts.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built with:
 
@@ -354,7 +354,7 @@ Built with:
 
 ---
 
-## 📊 Project Stats
+## Project Stats
 
 - **12 working demonstrations**
 - **30+ TypeScript files**
@@ -364,7 +364,7 @@ Built with:
 
 ---
 
-## 🎓 Learning Path
+## Learning Path
 
 ### Beginners
 
@@ -389,7 +389,7 @@ Built with:
 
 ---
 
-## 💡 Key Takeaways
+## Key Takeaways
 
 1. **Race conditions are everywhere** in concurrent systems
 2. **They're hard to reproduce** (non-deterministic)
@@ -399,6 +399,6 @@ Built with:
 
 ---
 
-**Happy Learning! 🚀**
+**Happy Learning!**
 
 For questions or issues, please open a GitHub issue.
