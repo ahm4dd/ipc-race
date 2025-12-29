@@ -287,7 +287,7 @@ Each demo has its own README in the `docs/` directory explaining:
 
 ---
 
-## 🔧 Development
+## Development
 
 ### Running Tests
 
