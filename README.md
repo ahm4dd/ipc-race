@@ -28,7 +28,7 @@ An educational TypeScript project demonstrating fundamental operating system con
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/ahm4dd/ipc-race
 cd os-project
 
 # Install dependencies
